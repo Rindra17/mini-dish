@@ -3,7 +3,7 @@
 
 create type dish_types as enum ('START', 'MAIN', 'DESSERT');
 
-create type categories as enum ('VEGETABLE', 'ANIMAL', 'MARINE', 'DIARY', 'OTHER');
+create type categories as enum ('VEGETABLE', 'ANIMAL', 'MARINE', 'DAIRY', 'OTHER');
 
 create table Dish
 (
