@@ -22,7 +22,13 @@ public class Dish {
         this.ingredients = ingredients;
     }
 
-    public int getId() {
+    public Dish(String name, DishTypeEnum dishType, List<Ingredient> ingredients) {
+        this.name = name;
+        this.dishType = dishType;
+        this.ingredients = ingredients;
+    }
+
+    public Integer getId() {
         return id;
     }
 

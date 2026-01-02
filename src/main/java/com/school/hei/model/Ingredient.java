@@ -21,7 +21,7 @@ public class Ingredient {
 
     public Ingredient() {}
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 

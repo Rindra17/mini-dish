@@ -1,1 +1,0 @@
-select i.id as ing_id, i.name as ing_name from ingredient i where lower(i.name) = ?;
