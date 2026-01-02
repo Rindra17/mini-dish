@@ -11,7 +11,7 @@ public class Ingredient {
     private CategoryEnum category;
     private Dish dish;
 
-    public Ingredient(int id, String name, Double price, CategoryEnum category, Dish dish) {
+    public Ingredient(String name, Double price, CategoryEnum category) {
         this.id = id;
         this.name = name;
         this.price = price;
@@ -98,6 +98,6 @@ public class Ingredient {
                 ", price=" + price +
                 ", category=" + category +
                 ", dish=" + getDishName() +
-                '}';
+                "}\n";
     }
 }

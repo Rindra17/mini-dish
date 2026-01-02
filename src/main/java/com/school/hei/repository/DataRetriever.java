@@ -8,7 +8,9 @@ import com.school.hei.type.DishTypeEnum;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class DataRetriever {
     private final DBConnection dbConnection = new DBConnection();
@@ -23,7 +25,7 @@ public class DataRetriever {
         String ingredientSql = """
             select i.id as ing_id, i.name as ing_name, i.price as ing_price, i.category as ing_category
             from ingredient i
-            where i.id = ?
+            where i.id_dish = ?
             order by i.id
         """;
 
@@ -58,6 +60,7 @@ public class DataRetriever {
                ingredient.setName(ingredientRs.getString("ing_name"));
                ingredient.setPrice(ingredientRs.getDouble("ing_price"));
                ingredient.setCategory(CategoryEnum.valueOf(ingredientRs.getString("ing_category")));
+
                ingredients.add(ingredient);
            }
            dish.setIngredients(ingredients);
@@ -108,9 +111,114 @@ public class DataRetriever {
         }
     }
 
-    List<Ingredient> createIngredients(List<Ingredient> newIngredients) {
+    public List<Ingredient> createIngredients(List<Ingredient> newIngredients) {
+        if (newIngredients == null || newIngredients.isEmpty()) {
+            throw new IllegalArgumentException("Ingredients list cannot be empty");
+        }
 
-        throw new RuntimeException("Not Implemented");
+        for (Ingredient newIngredient : newIngredients) {
+            if (newIngredient == null) {
+                throw new IllegalArgumentException("Ingredients list cannot contain null values");
+            }
+            if (newIngredient.getName() == null || newIngredient.getName().isEmpty()
+                    || newIngredient.getCategory() == null) {
+                throw new IllegalArgumentException("Ingredients name or category cannot be empty or null");
+            }
+            if (newIngredient.getPrice() < 0 || newIngredient.getPrice() == null) {
+                throw new IllegalArgumentException("Ingredients price cannot be empty or null");
+            }
+        }
+
+        Set<String> ingredientsName = new HashSet<>();
+        for (Ingredient newIngredient : newIngredients) {
+            if (!ingredientsName.add(newIngredient.getName().toLowerCase())) {
+                throw new IllegalArgumentException("Duplicate ingredient provided in list: " + newIngredient.getName());
+            }
+        }
+
+        String insertSql =
+        """
+            insert into ingredient (name, price, category, id_dish) values (?, ?, ?::categories, ?)
+        """;
+
+        String searchSql =
+        """
+            select i.id as ing_id, i.name as ing_name from ingredient i where lower(i.name) = lower(?)
+        """;
+
+        Connection con = null;
+        PreparedStatement insertStm;
+        PreparedStatement searchStm;
+        ResultSet insertRs;
+        ResultSet searchRs;
+
+        try {
+            con = dbConnection.getDBConnection();
+            con.setAutoCommit(false);
+            searchStm = con.prepareStatement(searchSql);
+            ResultSet generatedKeys;
+
+            for (Ingredient newIngredient : newIngredients) {
+                searchStm.setString(1, newIngredient.getName());
+                searchRs = searchStm.executeQuery();
+                if (searchRs.next()) {
+                    con.rollback();
+                    throw new RuntimeException("Ingredient with name " + newIngredient.getName() + " already exists");
+                }
+            }
+
+            insertStm = con.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
+            for (Ingredient newIngredient : newIngredients) {
+                insertStm.setString(1, newIngredient.getName());
+                insertStm.setDouble(2, newIngredient.getPrice());
+                insertStm.setString(3, newIngredient.getCategory().name());
+
+                if (newIngredient.getDish() != null) {
+                    insertStm.setInt(4, newIngredient.getDish().getId());
+                }
+                else {
+                    insertStm.setNull(4, Types.INTEGER);
+                }
+                insertStm.addBatch();
+            }
+            int[] batchResults = insertStm.executeBatch();
+
+            for (int i = 0; i < batchResults.length; i++) {
+                if (batchResults[i] == Statement.EXECUTE_FAILED) {
+                    con.rollback();
+                    throw new RuntimeException("Error while creating: " + newIngredients.get(i).getName() + ". \nNo ingredients inserted");
+                }
+            }
+
+            generatedKeys = insertStm.getGeneratedKeys();
+            List<Ingredient> createdIngredients = new ArrayList<>();
+            int index = 0;
+
+            while (generatedKeys.next()) {
+                Ingredient createdIngredient = new Ingredient();
+                createdIngredient.setId(generatedKeys.getInt(1));
+                createdIngredient.setName(newIngredients.get(index).getName());
+                createdIngredient.setPrice(newIngredients.get(index).getPrice());
+                createdIngredient.setCategory(newIngredients.get(index).getCategory());
+                createdIngredients.add(createdIngredient);
+                index++;
+            }
+            con.commit();
+            dbConnection.closeDBConnection(con);
+            return createdIngredients;
+        }
+        catch (SQLException e) {
+            try {
+                if (con != null && !con.isClosed()) {
+                    con.rollback();
+                    System.out.println("Error, rolling back");
+                }
+            }
+            catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     Dish saveDish(Dish dishToSave) {
