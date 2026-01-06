@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DataRetriever {
-    private final DBConnection dbConnection = new DBConnection();
+    public final DBConnection dbConnection = new DBConnection();
 
     public Dish findDishById(Integer id) {
         String dishSql = """
