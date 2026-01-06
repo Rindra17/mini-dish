@@ -19,7 +19,7 @@ public class DataRetrieverTest {
     private static  DataRetriever dataRetriever;
 
     @BeforeAll
-    public static void setupClass() throws SQLException {
+    public static void setupClass() {
         dataRetriever = new DataRetriever();
         resetAndInitializeDatabase();
     }
@@ -39,14 +39,12 @@ public class DataRetrieverTest {
             System.out.println("Database reset successfully");
         }
         catch (SQLException e) {
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                    System.out.println("Error resetting database, rolled back");
-                }
-                catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
+            try {
+                connection.rollback();
+                System.out.println("Error resetting database, rolled back");
+            }
+            catch (SQLException ex) {
+                throw new RuntimeException(ex);
             }
             throw new RuntimeException(e);
         }
@@ -139,16 +137,14 @@ public class DataRetrieverTest {
                 .map(Ingredient::getName)
                 .toList();
 
-        System.out.println("Test a) PASSED\nDish: " + dish.getName() + "\nIngredients: " + ingredientNames.toString());
+        System.out.println("Test a) PASSED\nDish: " + dish.getName() + "\nIngredients: " + ingredientNames);
     }
 
     @Test
     @Order(2)
     @DisplayName("b) findDishById with id=999 should throw RuntimeException")
     public void testFindDishById_999() {
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            dataRetriever.findDishById(999);
-        });
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> dataRetriever.findDishById(999));
 
         assertNotNull(exception);
         System.out.println("Test b) PASSED\nRuntimeException thrown - " + exception.getMessage());
@@ -169,7 +165,7 @@ public class DataRetrieverTest {
         assertTrue(ingredientNames.contains("Poulet"));
         assertTrue(ingredientNames.contains("Chocolat"));
 
-        System.out.println("Test c) PASSED\nIngredients: " + ingredientNames.toString());
+        System.out.println("Test c) PASSED\nIngredients: " + ingredientNames);
     }
 
     @Test
@@ -217,7 +213,7 @@ public class DataRetrieverTest {
         assertTrue(ingredientNames.contains("Laitue"));
         assertTrue(ingredientNames.contains("Tomate"));
 
-        System.out.println("Test f) PASSED\nIngredients: " + ingredientNames.toString());
+        System.out.println("Test f) PASSED\nIngredients: " + ingredientNames);
     }
 
     @Test
@@ -277,9 +273,8 @@ public class DataRetrieverTest {
         Ingredient carotte = new Ingredient("Carotte", 2000.0, CategoryEnum.VEGETABLE);
         Ingredient laitue = new Ingredient("Laitue", 2000.0, CategoryEnum.VEGETABLE);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            dataRetriever.createIngredients(new ArrayList<>(Arrays.asList(carotte, laitue)));
-        });
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+            dataRetriever.createIngredients(new ArrayList<>(Arrays.asList(carotte, laitue))));
 
         assertNotNull(exception);
         assertTrue(exception.getMessage().contains("Laitue") ||

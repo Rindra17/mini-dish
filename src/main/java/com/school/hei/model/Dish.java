@@ -67,7 +67,7 @@ public class Dish {
                 }
             }
         }
-        this.ingredients = newIngredients == null ? new ArrayList<Ingredient>() : newIngredients;
+        this.ingredients = newIngredients == null ? new ArrayList<>() : newIngredients;
 
         for (Ingredient newIngredient : ingredients) {
             if (newIngredient != null) {

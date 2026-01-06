@@ -12,11 +12,9 @@ public class Ingredient {
     private Dish dish;
 
     public Ingredient(String name, Double price, CategoryEnum category) {
-        this.id = id;
         this.name = name;
         this.price = price;
         this.category = category;
-        this.dish = dish;
     }
 
     public Ingredient() {}
@@ -48,8 +46,8 @@ public class Ingredient {
     }
 
     public void setPrice(Double price) {
-        if (price < 0 || price == null) {
-            throw new IllegalArgumentException("Price must not be null or negative");
+        if (price < 0) {
+            throw new IllegalArgumentException("Price must not negative");
         }
         this.price = price;
     }

@@ -141,7 +141,6 @@ public class DataRetriever {
         Connection con = null;
         PreparedStatement insertStm;
         PreparedStatement searchStm;
-        ResultSet insertRs;
         ResultSet searchRs;
 
         try {
@@ -349,7 +348,7 @@ public class DataRetriever {
             order by ing_id
         """;
 
-        Connection con = null;
+        Connection con;
         PreparedStatement searchStm;
         ResultSet searchRs;
 
@@ -378,7 +377,7 @@ public class DataRetriever {
                     where i.name ilike ?
                 """;
 
-        Connection con = null;
+        Connection con;
         PreparedStatement searchStm;
         ResultSet searchRs;
 
@@ -437,7 +436,7 @@ public class DataRetriever {
             throw new IllegalArgumentException("Page and size must be greater than 0");
         }
 
-        Connection con = null;
+        Connection con;
         PreparedStatement searchStm;
         ResultSet searchRs;
 
