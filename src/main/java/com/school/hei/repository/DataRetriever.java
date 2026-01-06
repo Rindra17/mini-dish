@@ -369,7 +369,7 @@ public class DataRetriever {
         }
     }
     
-    List<Dish> findDishesByIngredientName(String ingredientName) {
+    public List<Dish> findDishesByIngredientName(String ingredientName) {
         String searchSql =
                 """
                     select d.id as dish_id, d.name as dish_name, d.dish_type, i.name as ing_name
@@ -399,8 +399,67 @@ public class DataRetriever {
         }
     }
 
-    List<Ingredient> findIngredientsByCriteria(String ingredientName, CategoryEnum category, String dishName, int page, int size) {
-        throw new RuntimeException("Not Implemented");
+    public List<Ingredient> findIngredientsByCriteria(String ingredientName, CategoryEnum category, String dishName, int page, int size) {
+        StringBuilder searchSql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+
+        searchSql.append(
+        """
+            select i.id as ing_id, i.name as ing_name, i.price as ing_price,
+                i.category as ing_category, i.id_dish, d.name as dish_name
+            from ingredient i
+            join public.dish d on d.id = i.id_dish
+            where 1=1
+        """);
+
+        if (ingredientName != null && !ingredientName.isEmpty()) {
+            searchSql.append("and i.name ilike ? ");
+            params.add("%" + ingredientName + "%");
+        }
+
+        if (category != null) {
+            searchSql.append("and i.category = ?::categories ");
+            params.add(category.name());
+        }
+
+        if (dishName != null && !dishName.isEmpty()) {
+            searchSql.append("and d.name ilike ? ");
+            params.add("%" + dishName + "%");
+        }
+
+        if (page > 0 && size > 0) {
+            int offset = (page - 1) * size;
+            searchSql.append("limit ? offset ? ");
+            params.add(size);
+            params.add(offset);
+        }
+        else {
+            throw new IllegalArgumentException("Page and size must be greater than 0");
+        }
+
+        Connection con = null;
+        PreparedStatement searchStm;
+        ResultSet searchRs;
+
+        try {
+            con = dbConnection.getDBConnection();
+            searchStm = con.prepareStatement(searchSql.toString());
+            int paramIndex = 1;
+            for (Object param : params) {
+                searchStm.setObject(paramIndex, param);
+                paramIndex++;
+            }
+            searchRs = searchStm.executeQuery();
+            List<Ingredient> ingredients = new ArrayList<>();
+            while (searchRs.next()) {
+                ingredients.add(resultsetToIngredient(searchRs));
+            }
+            dbConnection.closeDBConnection(con);
+            return ingredients;
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Ingredient resultsetToIngredient(ResultSet ingredientRs) throws SQLException {
