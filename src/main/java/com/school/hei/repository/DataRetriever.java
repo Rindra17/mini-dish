@@ -368,6 +368,36 @@ public class DataRetriever {
             throw new RuntimeException(e);
         }
     }
+    
+    List<Dish> findDishesByIngredientName(String ingredientName) {
+        String searchSql =
+                """
+                    select d.id as dish_id, d.name as dish_name, d.dish_type, i.name as ing_name
+                    from Dish d
+                    join Ingredient i on d.id = i.id_dish
+                    where i.name ilike ?
+                """;
+
+        Connection con = null;
+        PreparedStatement searchStm;
+        ResultSet searchRs;
+
+        try {
+            con = dbConnection.getDBConnection();
+            searchStm = con.prepareStatement(searchSql);
+            searchStm.setString(1, "%" + ingredientName + "%");
+            searchRs = searchStm.executeQuery();
+            List<Dish> dishes = new ArrayList<>();
+            while (searchRs.next()) {
+                dishes.add(findDishById(searchRs.getInt("dish_id")));
+            }
+            dbConnection.closeDBConnection(con);
+            return dishes;
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     List<Ingredient> findIngredientsByCriteria(String ingredientName, CategoryEnum category, String dishName, int page, int size) {
         throw new RuntimeException("Not Implemented");
