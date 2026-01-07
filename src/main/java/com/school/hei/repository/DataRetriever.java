@@ -17,7 +17,7 @@ public class DataRetriever {
 
     public Dish findDishById(Integer id) {
         String dishSql = """
-           select d.id as dish_id, d.name as dish_name, d.dish_type
+           select d.id as dish_id, d.name as dish_name, d.dish_type, d.price
            from dish d
            where id = ?
         """;
@@ -48,6 +48,7 @@ public class DataRetriever {
            dish.setId(dishRs.getInt("dish_id"));
            dish.setName(dishRs.getString("dish_name"));
            dish.setDishType(DishTypeEnum.valueOf(dishRs.getString("dish_type")));
+           dish.setPrice(dishRs.getDouble("price"));
 
            ingredientStmt = con.prepareStatement(ingredientSql);
            ingredientStmt.setInt(1, id);
@@ -232,12 +233,12 @@ public class DataRetriever {
 
         String updateDishSql =
         """
-            update dish set name = ?, dish_type = ?::dish_types where id = ?
+            update dish set name = ?, dish_type = ?::dish_types, price = ? where id = ?
         """;
 
         String createDishSql =
         """
-            insert into dish (name, dish_type) values (?, ?::dish_types) returning id
+            insert into dish (name, dish_type, price) values (?, ?::dish_types, ?) returning id
        """;
 
         String dissociateSql =
@@ -279,7 +280,8 @@ public class DataRetriever {
                 updateStm = con.prepareStatement(updateDishSql);
                 updateStm.setString(1, dishToSave.getName());
                 updateStm.setString(2, dishToSave.getDishType().name());
-                updateStm.setInt(3, dishToSave.getId());
+                updateStm.setDouble(3, dishToSave.getPrice());
+                updateStm.setInt(4, dishToSave.getId());
                 int result = updateStm.executeUpdate();
                 if (result == 0) {
                     throw new RuntimeException("Error while updating: " + dishToSave.getName());
@@ -289,6 +291,7 @@ public class DataRetriever {
                 createStm = con.prepareStatement(createDishSql, Statement.RETURN_GENERATED_KEYS);
                 createStm.setString(1, dishToSave.getName());
                 createStm.setString(2, dishToSave.getDishType().name());
+                createStm.setDouble(3, dishToSave.getPrice());
                 createStm.executeUpdate();
                 createDishRs = createStm.getGeneratedKeys();
                 if (createDishRs.next()) {
@@ -371,7 +374,7 @@ public class DataRetriever {
     public List<Dish> findDishesByIngredientName(String ingredientName) {
         String searchSql =
                 """
-                    select d.id as dish_id, d.name as dish_name, d.dish_type, i.name as ing_name
+                    select d.id as dish_id, d.name as dish_name, d.dish_type, d.price i.name as ing_name
                     from Dish d
                     join Ingredient i on d.id = i.id_dish
                     where i.name ilike ?

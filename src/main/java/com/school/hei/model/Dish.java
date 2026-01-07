@@ -11,6 +11,7 @@ public class Dish {
     private String name;
     private DishTypeEnum dishType;
     private List<Ingredient> ingredients;
+    private Double price;
 
     public Dish() {
     }
@@ -80,6 +81,14 @@ public class Dish {
         return ingredients == null ? null : ingredients.stream()
                 .mapToDouble(Ingredient::getPrice)
                 .sum();
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
     @Override
