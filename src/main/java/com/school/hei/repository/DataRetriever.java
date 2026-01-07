@@ -374,7 +374,7 @@ public class DataRetriever {
     public List<Dish> findDishesByIngredientName(String ingredientName) {
         String searchSql =
                 """
-                    select d.id as dish_id, d.name as dish_name, d.dish_type, d.price i.name as ing_name
+                    select d.id as dish_id, d.name as dish_name, d.dish_type, d.price, i.name as ing_name
                     from Dish d
                     join Ingredient i on d.id = i.id_dish
                     where i.name ilike ?

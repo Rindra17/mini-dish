@@ -91,6 +91,17 @@ public class Dish {
         this.price = price;
     }
 
+    public Double getGrossMargin(Double price) {
+        if (price == null) {
+            throw new IllegalArgumentException("No price yet for this dish");
+        }
+        if (getDishCost() == null) {
+            throw new RuntimeException("No ingredients price for this dish");
+        }
+
+        return (price - getDishCost());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
