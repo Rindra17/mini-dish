@@ -77,7 +77,7 @@ public class Dish {
         }
     }
 
-    private Double getDishCost() {
+    public Double getDishCost() {
         return ingredients == null ? null : ingredients.stream()
                 .mapToDouble(Ingredient::getPrice)
                 .sum();
@@ -91,15 +91,12 @@ public class Dish {
         this.price = price;
     }
 
-    public Double getGrossMargin(Double price) {
+    public Double getGrossMargin() {
         if (price == null) {
-            throw new IllegalArgumentException("No price yet for this dish");
-        }
-        if (getDishCost() == null) {
-            throw new RuntimeException("No ingredients price for this dish");
+            throw new RuntimeException("Price ist null");
         }
 
-        return (price - getDishCost());
+        return (this.price - getDishCost());
     }
 
     @Override

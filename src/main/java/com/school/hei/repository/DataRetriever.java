@@ -6,6 +6,7 @@ import com.school.hei.model.Ingredient;
 import com.school.hei.type.CategoryEnum;
 import com.school.hei.type.DishTypeEnum;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,7 +49,8 @@ public class DataRetriever {
            dish.setId(dishRs.getInt("dish_id"));
            dish.setName(dishRs.getString("dish_name"));
            dish.setDishType(DishTypeEnum.valueOf(dishRs.getString("dish_type")));
-           dish.setPrice(dishRs.getDouble("price"));
+           BigDecimal price = dishRs.getBigDecimal("price");
+           dish.setPrice(price != null ? price.doubleValue() : null);
 
            ingredientStmt = con.prepareStatement(ingredientSql);
            ingredientStmt.setInt(1, id);
@@ -280,7 +282,7 @@ public class DataRetriever {
                 updateStm = con.prepareStatement(updateDishSql);
                 updateStm.setString(1, dishToSave.getName());
                 updateStm.setString(2, dishToSave.getDishType().name());
-                updateStm.setDouble(3, dishToSave.getPrice());
+                updateStm.setObject(3, dishToSave.getPrice());
                 updateStm.setInt(4, dishToSave.getId());
                 int result = updateStm.executeUpdate();
                 if (result == 0) {
@@ -291,7 +293,7 @@ public class DataRetriever {
                 createStm = con.prepareStatement(createDishSql, Statement.RETURN_GENERATED_KEYS);
                 createStm.setString(1, dishToSave.getName());
                 createStm.setString(2, dishToSave.getDishType().name());
-                createStm.setDouble(3, dishToSave.getPrice());
+                createStm.setObject(3, dishToSave.getPrice());
                 createStm.executeUpdate();
                 createDishRs = createStm.getGeneratedKeys();
                 if (createDishRs.next()) {

@@ -24,6 +24,11 @@ public class DataRetrieverTest {
         resetAndInitializeDatabase();
     }
 
+    @AfterAll
+    public static void tearDownClass() {
+        resetAndInitializeDatabase();
+    }
+
     private static void resetAndInitializeDatabase() {
         Connection connection = null;
         try {
