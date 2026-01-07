@@ -6,7 +6,6 @@ import com.school.hei.model.Ingredient;
 import com.school.hei.type.CategoryEnum;
 import com.school.hei.type.DishTypeEnum;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -49,8 +48,7 @@ public class DataRetriever {
            dish.setId(dishRs.getInt("dish_id"));
            dish.setName(dishRs.getString("dish_name"));
            dish.setDishType(DishTypeEnum.valueOf(dishRs.getString("dish_type")));
-           BigDecimal price = dishRs.getBigDecimal("price");
-           dish.setPrice(price != null ? price.doubleValue() : null);
+           dish.setPrice(dishRs.getDouble("price"));
 
            ingredientStmt = con.prepareStatement(ingredientSql);
            ingredientStmt.setInt(1, id);
