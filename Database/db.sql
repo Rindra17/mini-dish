@@ -14,3 +14,6 @@ alter default privileges in schema public
 
 alter default privileges in schema public
   grant usage, select, update on sequences to mini_dish_db_manager;
+
+alter table dish owner to mini_dish_db_manager;
+alter type dish_types owner to mini_dish_db_manager;
