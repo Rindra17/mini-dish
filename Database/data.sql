@@ -17,3 +17,9 @@ VALUES  (1, 'Laitue', 800.00, 'VEGETABLE', 1),
 
 SELECT setval('dish_id_seq', (SELECT MAX(id) FROM Dish));
 SELECT setval('ingredient_id_seq', (SELECT MAX(id) FROM Ingredient));
+
+update dish
+    set price = 2000.0 where id = 1;
+
+update dish
+    set price = 6000.0 where id = 2;
