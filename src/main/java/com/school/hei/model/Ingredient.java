@@ -10,6 +10,15 @@ public class Ingredient {
     private Double price;
     private CategoryEnum category;
     private Dish dish;
+    private Double quantity;
+
+    public Double getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Double quantity) {
+        this.quantity = quantity;
+    }
 
     public Ingredient(String name, Double price, CategoryEnum category) {
         this.name = name;

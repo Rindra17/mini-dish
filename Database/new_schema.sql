@@ -14,7 +14,7 @@ do $$
         end if;
     end $$;
 
-create table if not exists dish_ingredient (
+create table if not exists DishIngredient (
     id serial primary key,
     dish_id int references dish(id) on delete cascade not null,
     ingredient_id int references public.ingredient(id) on delete cascade not null,
