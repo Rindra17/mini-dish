@@ -113,11 +113,6 @@ public class Main {
             System.out.println("   Ancien prix : " + ancienPrix);
             System.out.println("   Nouveau prix : " + updatedDish.getPrice());
 
-            if (updatedDish.getPrice().equals(nouveauPrix)) {
-                System.out.println("   Le prix a été correctement mis à jour");
-            } else {
-                System.out.println("   ERREUR : Le prix n'a pas été mis à jour (attendu: " + nouveauPrix + ", obtenu: " + updatedDish.getPrice() + ")");
-            }
         }
         catch (Exception e) {
             throw new RuntimeException(e);

@@ -8,10 +8,10 @@ import java.util.Objects;
 
 public class Dish {
     private Integer id;
+    private Double price;
     private String name;
     private DishTypeEnum dishType;
     private List<Ingredient> ingredients;
-    private Double price;
 
     public Dish() {
     }
