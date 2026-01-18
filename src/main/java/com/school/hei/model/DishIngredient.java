@@ -53,6 +53,14 @@ public class DishIngredient {
         this.unit = unit;
     }
 
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
     public Double getCost() {
         return ingredient.getPrice() * quantity;
     }

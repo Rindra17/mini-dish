@@ -2,9 +2,11 @@ package com.school.hei.repository;
 
 import com.school.hei.DataBase.DBConnection;
 import com.school.hei.model.Dish;
+import com.school.hei.model.DishIngredient;
 import com.school.hei.model.Ingredient;
 import com.school.hei.type.CategoryEnum;
 import com.school.hei.type.DishTypeEnum;
+import com.school.hei.type.UnitType;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -38,7 +40,7 @@ public class DataRetriever {
                 dish.setDishType(DishTypeEnum.valueOf(dishRs.getString("dish_type")));
                 dish.setPrice(dishRs.getObject("dish_price") == null
                         ? null : dishRs.getDouble("dish_price"));
-                dish.setIngredients(findIngredientByDishId(id));
+                dish.setDishIngredients(findIngredientByDishId(id));
                 return dish;
             }
             dbConnection.closeDBConnection(con);
@@ -48,30 +50,39 @@ public class DataRetriever {
         }
     }
 
-    private List<Ingredient> findIngredientByDishId(Integer id) {
+    private List<DishIngredient> findIngredientByDishId(Integer id) {
         String sql = """
-                select i.id, i.name, i.price, i.category
-                from ingredient i where id_dish = ?;
+                select di.id, di.quantity as ing_quantity, di.unit as ing_unit,
+                i.id as ing_id, i.name as ing_name, i.category as ing_category
+                from public.dishingredient di
+                join ingredient i on di.ingredient_id = i.id
+                where di.dish_id = ?;
                 """;
         Connection con = null;
         PreparedStatement statement;
         ResultSet resultSet;
-        List<Ingredient> ingredients = new ArrayList<>();
+        List<DishIngredient> dishIngredients = new ArrayList<>();
         try {
             con = dbConnection.getDBConnection();
             statement = con.prepareStatement(sql);
             statement.setInt(1, id);
             resultSet = statement.executeQuery();
             while (resultSet.next()) {
+                DishIngredient di = new DishIngredient();
+                di.setId(resultSet.getInt("ing_id"));
+                di.setQuantity(resultSet.getDouble("ing_quantity"));
+                di.setUnit(UnitType.valueOf(resultSet.getString("ing_unit")));
+
                 Ingredient ingredient = new Ingredient();
                 ingredient.setId(resultSet.getInt("id"));
                 ingredient.setName(resultSet.getString("name"));
                 ingredient.setPrice(resultSet.getDouble("price"));
                 ingredient.setCategory(CategoryEnum.valueOf(resultSet.getString("category")));
-                ingredients.add(ingredient);
+                di.setIngredient(ingredient);
+                dishIngredients.add(di);
             }
             dbConnection.closeDBConnection(con);
-            return ingredients;
+            return dishIngredients;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
