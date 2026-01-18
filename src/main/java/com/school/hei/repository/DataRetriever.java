@@ -208,7 +208,7 @@ public class DataRetriever {
     public Ingredient findIngredientByName(String ingredientName) {
         String searchSql =
                 """
-                            select i.id as ing_id, i.name as ing_name, i.name as ing_name, i.price as ing_price, i.category as ing_category, i.id_dish as id_dish
+                            select i.id as ing_id, i.name as ing_name, i.name as ing_name, i.price as ing_price, i.category as ing_category
                             from ingredient i
                             where lower(i.name) = lower(?)
                             order by ing_id
@@ -236,11 +236,12 @@ public class DataRetriever {
     public List<Dish> findDishesByIngredientName(String ingredientName) {
         String searchSql =
                 """
-                            select d.id as dish_id, d.name as dish_name, d.dish_type, d.price, i.name as ing_name
-                            from Dish d
-                            join Ingredient i on d.id = i.id_dish
-                            where i.name ilike ?
-                        """;
+                    select distinct d.id as dish_id
+                    from Dish d
+                    join dishingredient di on d.id = di.dish_id
+                    join ingredient i on di.ingredient_id = i.id
+                    where i.name ilike ?
+                    """;
 
         Connection con;
         PreparedStatement searchStm;
@@ -329,9 +330,6 @@ public class DataRetriever {
         ingredient.setName(ingredientRs.getString("ing_name"));
         ingredient.setPrice(ingredientRs.getDouble("ing_price"));
         ingredient.setCategory(CategoryEnum.valueOf(ingredientRs.getString("ing_category")));
-        if (ingredientRs.getInt("id_dish") > 0) {
-            ingredient.setDish(findDishById(ingredientRs.getInt("id_dish")));
-        }
         return ingredient;
     }
 
