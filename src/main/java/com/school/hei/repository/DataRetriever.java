@@ -10,9 +10,7 @@ import com.school.hei.type.UnitType;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DataRetriever {
@@ -90,7 +88,7 @@ public class DataRetriever {
 
     public List<Ingredient> findIngredients(int page, int size) {
         String sql = """
-                    select i.id as ing_id, i.name as ing_name, i.price as ing_price, i.category as ing_category, i.id_dish
+                    select i.id as ing_id, i.name as ing_name, i.price as ing_price, i.category as ing_category
                     from ingredient i
                     order by i.id
                     limit ? offset ?
@@ -128,9 +126,9 @@ public class DataRetriever {
         try {
             conn.setAutoCommit(false);
             String insertSql = """
-                        INSERT INTO ingredient (id, name, category, price, required_quantity)
-                        VALUES (?, ?, ?::categories, ?, ?)
-                        RETURNING id
+                        INSERT INTO ingredient (id, name, category, price)
+                        VALUES (?, ?, ?::categories, ?)
+                        returning id
                     """;
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 for (Ingredient ingredient : newIngredients) {
@@ -142,11 +140,6 @@ public class DataRetriever {
                     ps.setString(2, ingredient.getName());
                     ps.setString(3, ingredient.getCategory().name());
                     ps.setDouble(4, ingredient.getPrice());
-                    if (ingredient.getQuantity() != null) {
-                        ps.setDouble(5, ingredient.getQuantity());
-                    }else {
-                        ps.setNull(5, Types.DOUBLE);
-                    }
 
                     try (ResultSet rs = ps.executeQuery()) {
                         rs.next();
@@ -201,9 +194,9 @@ public class DataRetriever {
                 }
             }
 
-            List<Ingredient> newIngredients = toSave.getIngredients();
-            detachIngredients(conn, dishId, newIngredients);
-            attachIngredients(conn, dishId, newIngredients);
+            List<DishIngredient> newDishIngredients = toSave.getDishIngredients();
+            detachIngredients(conn, dishId, newDishIngredients);
+            attachIngredients(conn, dishId, newDishIngredients);
 
             conn.commit();
             return findDishById(dishId);
@@ -342,10 +335,10 @@ public class DataRetriever {
         return ingredient;
     }
 
-    private void detachIngredients(Connection con, Integer dishId, List<Ingredient> ingredients) throws SQLException{
-        if (ingredients == null || ingredients.isEmpty()) {
+    private void detachIngredients(Connection con, Integer dishId, List<DishIngredient> newDishIngredients) throws SQLException{
+        if (newDishIngredients == null || newDishIngredients.isEmpty()) {
             try (PreparedStatement ps = con.prepareStatement(
-                    "UPDATE ingredient SET id_dish = NULL WHERE id_dish = ?")) {
+                    "UPDATE dishingredient SET dish_id = NULL WHERE dish_id = ?")) {
                 ps.setInt(1, dishId);
                 ps.executeUpdate();
             }
@@ -353,12 +346,12 @@ public class DataRetriever {
         }
 
         String baseSql = """
-                    UPDATE ingredient
-                    SET id_dish = NULL
-                    WHERE id_dish = ? AND id NOT IN (%s)
+                    UPDATE dishingredient
+                    SET dish_id = NULL
+                    WHERE dish_id = ? AND id NOT IN (%s)
                 """;
 
-        String inClause = ingredients.stream()
+        String inClause = newDishIngredients.stream()
                 .map(i -> "?")
                 .collect(Collectors.joining(","));
 
@@ -367,26 +360,26 @@ public class DataRetriever {
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, dishId);
             int index = 2;
-            for (Ingredient ingredient : ingredients) {
-                ps.setInt(index++, ingredient.getId());
+            for (DishIngredient dishIngredient : newDishIngredients) {
+                ps.setInt(index++, dishIngredient.getId());
             }
             ps.executeUpdate();
         }
     }
 
-    private void attachIngredients(Connection con, Integer dishId, List<Ingredient> ingredients) throws SQLException {
-        if (ingredients == null || ingredients.isEmpty()) {
+    private void attachIngredients(Connection con, Integer dishId, List<DishIngredient> newDishIngredients) throws SQLException {
+        if (newDishIngredients == null || newDishIngredients.isEmpty()) {
             return;
         }
 
         String attachSql = """
-                    UPDATE ingredient
-                    SET id_dish = ?
-                    WHERE id = ?
+                    UPDATE dishingredient
+                    SET dish_id = ?
+                    WHERE ingredient_id = ?
                 """;
 
         try (PreparedStatement ps = con.prepareStatement(attachSql)) {
-            for (Ingredient ingredient : ingredients) {
+            for (DishIngredient ingredient : newDishIngredients) {
                 ps.setInt(1, dishId);
                 ps.setInt(2, ingredient.getId());
                 ps.addBatch();
