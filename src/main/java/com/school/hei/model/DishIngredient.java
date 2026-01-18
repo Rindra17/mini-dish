@@ -6,35 +6,35 @@ import java.util.Objects;
 
 public class DishIngredient {
     private Integer id;
-    private Integer dishId;
-    private Integer ingredientId;
+    private Dish dish;
+    private Ingredient ingredient;
     private Double quantity;
     private UnitType unit;
 
     public DishIngredient() {
     }
 
-    public DishIngredient(Integer dishId, Integer ingredientId, Double quantity, UnitType unit) {
-        this.dishId = dishId;
-        this.ingredientId = ingredientId;
+    public DishIngredient(Dish dish, Ingredient ingredient, Double quantity, UnitType unit) {
+        this.dish = dish;
+        this.ingredient = ingredient;
         this.quantity = quantity;
         this.unit = unit;
     }
 
-    public Integer getDishId() {
-        return dishId;
+    public Dish getDish() {
+        return dish;
     }
 
-    public void setDishId(Integer dishId) {
-        this.dishId = dishId;
+    public void setDish(Dish dish) {
+        this.dish = dish;
     }
 
-    public Integer getIngredientId() {
-        return ingredientId;
+    public Ingredient getIngredient() {
+        return ingredient;
     }
 
-    public void setIngredientId(Integer ingredientId) {
-        this.ingredientId = ingredientId;
+    public void setIngredient(Ingredient ingredient) {
+        this.ingredient = ingredient;
     }
 
     public Double getQuantity() {
@@ -53,26 +53,38 @@ public class DishIngredient {
         this.unit = unit;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        DishIngredient that = (DishIngredient) o;
-        return Objects.equals(id, that.id) && Objects.equals(dishId, that.dishId) && Objects.equals(ingredientId, that.ingredientId) && Objects.equals(quantity, that.quantity) && unit == that.unit;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, dishId, ingredientId, quantity, unit);
+    public Double getCost() {
+        return ingredient.getPrice() * quantity;
     }
 
     @Override
     public String toString() {
         return "DishIngredient{" +
                 "id=" + id +
-                ", dishId=" + dishId +
-                ", ingredientId=" + ingredientId +
+                ", dish=" + dish +
+                ", ingredient=" + ingredient +
                 ", quantity=" + quantity +
                 ", unit=" + unit +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        DishIngredient that = (DishIngredient) o;
+        return Objects.equals(id, that.id) && Objects.equals(dish, that.dish) && Objects.equals(ingredient, that.ingredient) && Objects.equals(quantity, that.quantity) && unit == that.unit;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, dish, ingredient, quantity, unit);
+    }
+
+    public DishIngredient(Integer id, Dish dish, Ingredient ingredient, Double quantity, UnitType unit) {
+        this.id = id;
+        this.dish = dish;
+        this.ingredient = ingredient;
+        this.quantity = quantity;
+        this.unit = unit;
     }
 }
