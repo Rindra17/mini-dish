@@ -51,7 +51,7 @@ public class DataRetriever {
     private List<DishIngredient> findIngredientByDishId(Integer id) {
         String sql = """
                 select di.id, di.quantity as ing_quantity, di.unit as ing_unit,
-                i.id as ing_id, i.name as ing_name, i.category as ing_category
+                i.id as ing_id, i.name as ing_name, i.category as ing_category, i.price as ing_price
                 from public.dishingredient di
                 join ingredient i on di.ingredient_id = i.id
                 where di.dish_id = ?;
@@ -73,9 +73,9 @@ public class DataRetriever {
 
                 Ingredient ingredient = new Ingredient();
                 ingredient.setId(resultSet.getInt("id"));
-                ingredient.setName(resultSet.getString("name"));
-                ingredient.setPrice(resultSet.getDouble("price"));
-                ingredient.setCategory(CategoryEnum.valueOf(resultSet.getString("category")));
+                ingredient.setName(resultSet.getString("ing_name"));
+                ingredient.setPrice(resultSet.getDouble("ing_price"));
+                ingredient.setCategory(CategoryEnum.valueOf(resultSet.getString("ing_category")));
                 di.setIngredient(ingredient);
                 dishIngredients.add(di);
             }
