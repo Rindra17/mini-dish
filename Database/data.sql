@@ -29,7 +29,7 @@ insert into dishingredient (id, dish_id, ingredient_id, quantity, unit)
            (2, 1, 2, 0.15, 'KG'),
            (3, 2, 3, 1.00, 'KG'),
            (4, 4, 4, 0.30, 'KG'),
-           (5, 4, 5, 0.20, 'KG')
+           (5, 4, 5, 0.20, 'KG');
 
 update dish
     set price = 3500.00 where id = 1;

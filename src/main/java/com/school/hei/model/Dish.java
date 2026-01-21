@@ -8,25 +8,25 @@ import java.util.Objects;
 
 public class Dish {
     private Integer id;
-    private Double price;
     private String name;
+    private Double price;
     private DishTypeEnum dishType;
     private List<DishIngredient> dishIngredients;
 
     public Dish() {
     }
 
-    public Dish(Double price, String name, DishTypeEnum dishType, List<DishIngredient> dishIngredients) {
-        this.price = price;
+    public Dish(Integer id, String name, Double price, DishTypeEnum dishType, List<DishIngredient> dishIngredients) {
+        this.id = id;
         this.name = name;
+        this.price = price;
         this.dishType = dishType;
         this.dishIngredients = dishIngredients;
     }
 
-    public Dish(Integer id, Double price, String name, DishTypeEnum dishType, List<DishIngredient> dishIngredients) {
-        this.id = id;
-        this.price = price;
+    public Dish(String name, Double price, DishTypeEnum dishType, List<DishIngredient> dishIngredients) {
         this.name = name;
+        this.price = price;
         this.dishType = dishType;
         this.dishIngredients = dishIngredients;
     }
@@ -58,11 +58,11 @@ public class Dish {
         this.dishType = dishType;
     }
 
-    public List<DishIngredient> getDishIngredients() {
+    public List<DishIngredient> getIngredients() {
         return dishIngredients;
     }
 
-    public void setDishIngredients(List<DishIngredient> newDishIngredients) {
+    public void setIngredients(List<DishIngredient> newDishIngredients) {
         if (this.dishIngredients == null) {
             this.dishIngredients = new ArrayList<>();
         }

@@ -38,7 +38,7 @@ public class DataRetriever {
                 dish.setDishType(DishTypeEnum.valueOf(dishRs.getString("dish_type")));
                 dish.setPrice(dishRs.getObject("dish_price") == null
                         ? null : dishRs.getDouble("dish_price"));
-                dish.setDishIngredients(findIngredientByDishId(id));
+                dish.setIngredients(findIngredientByDishId(id));
                 return dish;
             }
             dbConnection.closeDBConnection(con);
@@ -194,7 +194,7 @@ public class DataRetriever {
                 }
             }
 
-            List<DishIngredient> newDishIngredients = toSave.getDishIngredients();
+            List<DishIngredient> newDishIngredients = toSave.getIngredients();
             detachIngredients(conn, dishId, newDishIngredients);
             attachIngredients(conn, dishId, newDishIngredients);
 
@@ -270,11 +270,12 @@ public class DataRetriever {
         searchSql.append(
                 """
                             select i.id as ing_id, i.name as ing_name, i.price as ing_price,
-                                i.category as ing_category, i.id_dish, d.name as dish_name
-                            from ingredient i
-                            join public.dish d on d.id = i.id_dish
+                                i.category as ing_category, d.name as dish_name
+                            from public.dishingredient di
+                            join ingredient i on di.ingredient_id = i.id
+                            join dish d on di.dish_id = d.id
                             where 1=1
-                        """);
+                       """);
 
         if (ingredientName != null && !ingredientName.isEmpty()) {
             searchSql.append("and i.name ilike ? ");
