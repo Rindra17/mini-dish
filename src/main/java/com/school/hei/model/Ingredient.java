@@ -2,6 +2,7 @@ package com.school.hei.model;
 
 import com.school.hei.type.CategoryEnum;
 
+import java.util.List;
 import java.util.Objects;
 
 public class Ingredient {
@@ -9,6 +10,14 @@ public class Ingredient {
     private String name;
     private Double price;
     private CategoryEnum category;
+    private List<StockMovement> stockMovementList;
+
+    public Ingredient(String name, Double price, CategoryEnum category, List<StockMovement> stockMovementList) {
+        this.name = name;
+        this.price = price;
+        this.category = category;
+        this.stockMovementList = stockMovementList;
+    }
 
     public Ingredient(String name, Double price, CategoryEnum category) {
         this.name = name;
@@ -44,6 +53,18 @@ public class Ingredient {
         return price;
     }
 
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public List<StockMovement> getStockMovementList() {
+        return stockMovementList;
+    }
+
+    public void setStockMovementList(List<StockMovement> stockMovementList) {
+        this.stockMovementList = stockMovementList;
+    }
+
     public void setPrice(Double price) {
         if (price < 0) {
             throw new IllegalArgumentException("Price must not negative");
@@ -63,15 +84,12 @@ public class Ingredient {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Ingredient that = (Ingredient) o;
-        return Objects.equals(id, that.id)
-                && Objects.equals(name, that.name)
-                && Objects.equals(price, that.price)
-                && category == that.category;
+        return Objects.equals(id, that.id) && Objects.equals(name, that.name) && Objects.equals(price, that.price) && category == that.category && Objects.equals(stockMovementList, that.stockMovementList);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, price, category);
+        return Objects.hash(id, name, price, category, stockMovementList);
     }
 
     @Override
@@ -81,6 +99,7 @@ public class Ingredient {
                 ", name='" + name + '\'' +
                 ", price=" + price +
                 ", category=" + category +
-                "}\n";
+                ", stockMovementList=" + stockMovementList +
+                '}';
     }
 }

@@ -51,9 +51,11 @@ public class DataRetriever {
     private List<DishIngredient> findIngredientByDishId(Integer id) {
         String sql = """
                 select di.id, di.quantity as ing_quantity, di.unit as ing_unit,
-                i.id as ing_id, i.name as ing_name, i.category as ing_category, i.price as ing_price
+                i.id as ing_id, i.name as ing_name, i.category as ing_category, i.price as ing_price,
+                d.id as dish_id, d.name as dish_name, d.price as dish_price, d.dish_type as dish_type
                 from public.dishingredient di
                 join ingredient i on di.ingredient_id = i.id
+                join dish d on d.id = di.dish_id
                 where di.dish_id = ?;
                 """;
         Connection con = null;
@@ -67,12 +69,12 @@ public class DataRetriever {
             resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 DishIngredient di = new DishIngredient();
-                di.setId(resultSet.getInt("ing_id"));
+                di.setId(resultSet.getInt("id"));
                 di.setQuantity(resultSet.getDouble("ing_quantity"));
                 di.setUnit(UnitType.valueOf(resultSet.getString("ing_unit")));
 
                 Ingredient ingredient = new Ingredient();
-                ingredient.setId(resultSet.getInt("id"));
+                ingredient.setId(resultSet.getInt("ing_id"));
                 ingredient.setName(resultSet.getString("ing_name"));
                 ingredient.setPrice(resultSet.getDouble("ing_price"));
                 ingredient.setCategory(CategoryEnum.valueOf(resultSet.getString("ing_category")));
@@ -195,7 +197,7 @@ public class DataRetriever {
             }
 
             List<DishIngredient> newDishIngredients = toSave.getIngredients();
-            detachIngredients(conn, dishId, newDishIngredients);
+
             attachIngredients(conn, dishId, newDishIngredients);
 
             conn.commit();
@@ -208,7 +210,8 @@ public class DataRetriever {
     public Ingredient findIngredientByName(String ingredientName) {
         String searchSql =
                 """
-                            select i.id as ing_id, i.name as ing_name, i.name as ing_name, i.price as ing_price, i.category as ing_category
+                            select i.id as ing_id, i.name as ing_name, i.name as ing_name, i.price as ing_price,
+                            i.category as ing_category
                             from ingredient i
                             where lower(i.name) = lower(?)
                             order by ing_id
@@ -223,11 +226,13 @@ public class DataRetriever {
             searchStm = con.prepareStatement(searchSql);
             searchStm.setString(1, ingredientName);
             searchRs = searchStm.executeQuery();
-            if (!searchRs.next()) {
-                return null;
+            if (searchRs.next()) {
+                Ingredient ingredient = resultsetToIngredient(searchRs);
+                dbConnection.closeDBConnection(con);
+                return ingredient;
             }
             dbConnection.closeDBConnection(con);
-            return resultsetToIngredient(searchRs);
+            return null;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -236,12 +241,12 @@ public class DataRetriever {
     public List<Dish> findDishesByIngredientName(String ingredientName) {
         String searchSql =
                 """
-                    select distinct d.id as dish_id
-                    from Dish d
-                    join dishingredient di on d.id = di.dish_id
-                    join ingredient i on di.ingredient_id = i.id
-                    where i.name ilike ?
-                    """;
+                        select distinct d.id as dish_id
+                        from Dish d
+                        join dishingredient di on d.id = di.dish_id
+                        join ingredient i on di.ingredient_id = i.id
+                        where i.name ilike ?
+                        """;
 
         Connection con;
         PreparedStatement searchStm;
@@ -269,13 +274,13 @@ public class DataRetriever {
 
         searchSql.append(
                 """
-                            select i.id as ing_id, i.name as ing_name, i.price as ing_price,
-                                i.category as ing_category, d.name as dish_name
-                            from public.dishingredient di
-                            join ingredient i on di.ingredient_id = i.id
-                            join dish d on di.dish_id = d.id
-                            where 1=1
-                       """);
+                             select i.id as ing_id, i.name as ing_name, i.price as ing_price,
+                                 i.category as ing_category, d.name as dish_name
+                             from public.dishingredient di
+                             join ingredient i on di.ingredient_id = i.id
+                             join dish d on di.dish_id = d.id
+                             where 1=1
+                        """);
 
         if (ingredientName != null && !ingredientName.isEmpty()) {
             searchSql.append("and i.name ilike ? ");
@@ -334,35 +339,14 @@ public class DataRetriever {
         return ingredient;
     }
 
-    private void detachIngredients(Connection con, Integer dishId, List<DishIngredient> newDishIngredients) throws SQLException{
+    private void detachIngredients(Connection con, Integer dishId, List<DishIngredient> newDishIngredients) throws SQLException {
         if (newDishIngredients == null || newDishIngredients.isEmpty()) {
             try (PreparedStatement ps = con.prepareStatement(
-                    "UPDATE dishingredient SET dish_id = NULL WHERE dish_id = ?")) {
+                    "delete from dishingredient where dish_id = ?")) {
                 ps.setInt(1, dishId);
                 ps.executeUpdate();
             }
             return;
-        }
-
-        String baseSql = """
-                    UPDATE dishingredient
-                    SET dish_id = NULL
-                    WHERE dish_id = ? AND id NOT IN (%s)
-                """;
-
-        String inClause = newDishIngredients.stream()
-                .map(i -> "?")
-                .collect(Collectors.joining(","));
-
-        String sql = String.format(baseSql, inClause);
-
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, dishId);
-            int index = 2;
-            for (DishIngredient dishIngredient : newDishIngredients) {
-                ps.setInt(index++, dishIngredient.getId());
-            }
-            ps.executeUpdate();
         }
     }
 
@@ -372,65 +356,76 @@ public class DataRetriever {
         }
 
         String attachSql = """
-                    UPDATE dishingredient
-                    SET dish_id = ?
-                    WHERE ingredient_id = ?
+                INSERT INTO dishingredient (ingredient_id, dish_id, quantity, unit)
+                VALUES (?, ?, ?, ?::unit_type)
+                ON CONFLICT (ingredient_id, dish_id)
+                DO UPDATE SET
+                    quantity = EXCLUDED.quantity,
+                    unit = EXCLUDED.unit
+                RETURNING id
                 """;
 
         try (PreparedStatement ps = con.prepareStatement(attachSql)) {
             for (DishIngredient ingredient : newDishIngredients) {
-                ps.setInt(1, dishId);
-                ps.setInt(2, ingredient.getId());
-                ps.addBatch();
-            }
-            ps.executeBatch();
-        }
-    }
+                ps.setInt(1, ingredient.getIngredient().getId());
+                ps.setInt(2, dishId);
+                ps.setDouble(3, ingredient.getQuantity());
+                ps.setString(4, ingredient.getUnit().name());
 
-    private int getNextSerialValue(Connection con, String tableName, String columnNane) throws SQLException{
-        String sequenceName = getSerialSequenceName(con, tableName, columnNane);
-        if (sequenceName == null) {
-            throw new IllegalArgumentException(
-                    "Any sequence found for " + tableName + "." + columnNane
-            );
-        }
-        updateSeqenceNextValue(con, tableName, columnNane, sequenceName);
-
-        String nextValSql = "select nextval(?)";
-        try (PreparedStatement ps = con.prepareStatement(nextValSql)) {
-            ps.setString(1, sequenceName);
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getInt(1);
-            }
-        }
-    }
-
-    private void updateSeqenceNextValue(Connection con, String tableName, String columnNane, String sequenceName) throws SQLException {
-        String setValSql = String.format(
-                "select setval('%s', (select coalesce(max(%s), 0) from %s))",
-                sequenceName, columnNane, tableName
-        );
-
-        try (PreparedStatement ps = con.prepareStatement(setValSql)) {
-            ps.executeQuery();
-        }
-    }
-
-    private String getSerialSequenceName(Connection con, String tableName, String columnNane) throws SQLException{
-        String sql = "select pg_get_serial_sequence(?, ?)";
-
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, tableName);
-            ps.setString(2, columnNane);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString(1);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        ingredient.setId(rs.getInt("id"));
+                    }
                 }
             }
         }
-        return null;
     }
 
-}
+        private int getNextSerialValue (Connection con, String tableName, String columnNane) throws SQLException {
+            String sequenceName = getSerialSequenceName(con, tableName, columnNane);
+            if (sequenceName == null) {
+                throw new IllegalArgumentException(
+                        "Any sequence found for " + tableName + "." + columnNane
+                );
+            }
+            updateSeqenceNextValue(con, tableName, columnNane, sequenceName);
+
+            String nextValSql = "select nextval(?)";
+            try (PreparedStatement ps = con.prepareStatement(nextValSql)) {
+                ps.setString(1, sequenceName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    return rs.getInt(1);
+                }
+            }
+        }
+
+        private void updateSeqenceNextValue (Connection con, String tableName, String columnNane, String sequenceName) throws
+        SQLException {
+            String setValSql = String.format(
+                    "select setval('%s', (select coalesce(max(%s), 0) from %s))",
+                    sequenceName, columnNane, tableName
+            );
+
+            try (PreparedStatement ps = con.prepareStatement(setValSql)) {
+                ps.executeQuery();
+            }
+        }
+
+        private String getSerialSequenceName (Connection con, String tableName, String columnNane) throws SQLException {
+            String sql = "select pg_get_serial_sequence(?, ?)";
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, tableName);
+                ps.setString(2, columnNane);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString(1);
+                    }
+                }
+            }
+            return null;
+        }
+
+    }
