@@ -1,15 +1,14 @@
 import com.school.hei.model.Dish;
+import com.school.hei.model.DishIngredient;
 import com.school.hei.model.Ingredient;
 import com.school.hei.repository.DataRetriever;
 import com.school.hei.type.CategoryEnum;
 import com.school.hei.type.DishTypeEnum;
+import com.school.hei.type.UnitType;
 import org.junit.jupiter.api.*;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -85,46 +84,80 @@ public class DataRetrieverTest {
         dishStmt.executeUpdate();
 
         String insertIngredientSql =
-                "insert into ingredient (id, name, price, category, id_dish) values (?, ?, ?, ?::categories, ?)";
+                "insert into ingredient (id, name, price, category) values (?, ?, ?, ?::categories)";
         PreparedStatement ingStmt = connection.prepareStatement(insertIngredientSql);
 
         ingStmt.setInt(1, 1);
         ingStmt.setString(2, "Laitue");
         ingStmt.setDouble(3, 800.00);
         ingStmt.setString(4, "VEGETABLE");
-        ingStmt.setInt(5, 1);
         ingStmt.executeUpdate();
 
         ingStmt.setInt(1, 2);
         ingStmt.setString(2, "Tomate");
         ingStmt.setDouble(3, 600.00);
         ingStmt.setString(4, "VEGETABLE");
-        ingStmt.setInt(5, 1);
         ingStmt.executeUpdate();
 
         ingStmt.setInt(1, 3);
         ingStmt.setString(2, "Poulet");
         ingStmt.setDouble(3, 4500.00);
         ingStmt.setString(4, "ANIMAL");
-        ingStmt.setInt(5, 2);
         ingStmt.executeUpdate();
 
         ingStmt.setInt(1, 4);
         ingStmt.setString(2, "Chocolat");
         ingStmt.setDouble(3, 3000.00);
         ingStmt.setString(4, "OTHER");
-        ingStmt.setInt(5, 4);
         ingStmt.executeUpdate();
 
         ingStmt.setInt(1, 5);
         ingStmt.setString(2, "Beurre");
         ingStmt.setDouble(3, 2500.00);
         ingStmt.setString(4, "DAIRY");
-        ingStmt.setInt(5, 4);
         ingStmt.executeUpdate();
 
         connection.prepareStatement("SELECT setval('dish_id_seq', 5, true)").execute();
         connection.prepareStatement("SELECT setval('ingredient_id_seq', 5, true)").execute();
+
+        String insertDishIngredientSql =
+                "insert into dishingredient (id, dish_id, ingredient_id, quantity, unit) values (?, ?, ?, ?, ?::unit_type)";
+        PreparedStatement dishIngStmt = connection.prepareStatement(insertDishIngredientSql);
+
+        dishIngStmt.setInt(1, 1);
+        dishIngStmt.setInt(2, 1);
+        dishIngStmt.setInt(3, 1);
+        dishIngStmt.setDouble(4, 0.20);
+        dishIngStmt.setString(5, "KG");
+        dishIngStmt.executeUpdate();
+
+        dishIngStmt.setInt(1, 2);
+        dishIngStmt.setInt(2, 1);
+        dishIngStmt.setInt(3, 2);
+        dishIngStmt.setDouble(4, 0.15);
+        dishIngStmt.setString(5, "KG");
+        dishIngStmt.executeUpdate();
+
+        dishIngStmt.setInt(1, 3);
+        dishIngStmt.setInt(2, 2);
+        dishIngStmt.setInt(3, 3);
+        dishIngStmt.setDouble(4, 1.00);
+        dishIngStmt.setString(5, "KG");
+        dishIngStmt.executeUpdate();
+
+        dishIngStmt.setInt(1, 4);
+        dishIngStmt.setInt(2, 4);
+        dishIngStmt.setInt(3, 4);
+        dishIngStmt.setDouble(4, 0.30);
+        dishIngStmt.setString(5, "KG");
+        dishIngStmt.executeUpdate();
+
+        dishIngStmt.setInt(1, 5);
+        dishIngStmt.setInt(2, 4);
+        dishIngStmt.setInt(3, 5);
+        dishIngStmt.setDouble(4, 0.20);
+        dishIngStmt.setString(5, "KG");
+        dishIngStmt.executeUpdate();
     }
 
     @Test
@@ -132,14 +165,15 @@ public class DataRetrieverTest {
     @DisplayName("a) findDishById with id=1 should return Salade fraîche with 2 ingredients (Laitue et Tomate)")
     public void testFindDishById_1() {
         Dish dish = dataRetriever.findDishById(1);
+        List<DishIngredient> ingredients = dish.getIngredients();
 
         assertNotNull(dish);
         assertEquals("Salade fraîche", dish.getName());
         assertNotNull(dish.getIngredients());
-        assertEquals(2, dish.getIngredients().size());
+        assertEquals(2, ingredients.size());
 
         List<String> ingredientNames = dish.getIngredients().stream()
-                .map(Ingredient::getName)
+                .map(DishIngredient::getIngredient).map(Ingredient::getName)
                 .toList();
 
         System.out.println("Test a) PASSED\nDish: " + dish.getName() + "\nIngredients: " + ingredientNames);
@@ -293,12 +327,23 @@ public class DataRetrieverTest {
     @DisplayName("k) saveDish with new dish 'Soupe de légumes' and Oignon ingredient")
     public void testSaveDish_NewDish() {
         Ingredient oignon = dataRetriever.findIngredientByName("Oignon");
-        Dish newDish = new Dish(
-                "Soupe de légumes",
-                DishTypeEnum.START,
-                new ArrayList<>(Collections.singletonList(oignon)));
+
+        List<DishIngredient> dishIngredients = new ArrayList<>();
+
+        DishIngredient di = new DishIngredient();
+        di.setIngredient(oignon);
+        di.setQuantity(0.20);
+        di.setUnit(UnitType.KG);
+        dishIngredients.add(di);
+
+        Dish newDish = new Dish();
+        newDish.setName("Soupe de légumes");
+        newDish.setDishType(DishTypeEnum.START);
+        newDish.setPrice(2500.0);
+        newDish.setIngredients(dishIngredients);
 
         Dish savedDish = dataRetriever.saveDish(newDish);
+        List<Ingredient> ingredients = savedDish.getIngredients().stream().map(DishIngredient::getIngredient).toList();
 
         assertNotNull(savedDish);
         assertNotNull(savedDish.getId());
@@ -306,9 +351,9 @@ public class DataRetrieverTest {
         assertEquals(DishTypeEnum.START, savedDish.getDishType());
         assertNotNull(savedDish.getIngredients());
         assertEquals(1, savedDish.getIngredients().size());
-        assertEquals("Oignon", savedDish.getIngredients().getFirst().getName());
+        assertEquals("Oignon", ingredients.getFirst().getName());
 
-        System.out.println("Test k) PASSED\nDish saved: " + savedDish.getName() + "\nIngredients: " + savedDish.getIngredients().getFirst().getName());
+        System.out.println("Test k) PASSED\nDish saved: " + savedDish.getName() + "\nIngredients: " + ingredients.getFirst().getName());
     }
 
     @Test
@@ -320,11 +365,38 @@ public class DataRetrieverTest {
         Ingredient tomate = dataRetriever.findIngredientByName("Tomate");
         Ingredient fromage = dataRetriever.findIngredientByName("Fromage");
 
-        Dish updatedDish = new Dish(
-                1,
-                "Salade fraîche",
-                DishTypeEnum.START,
-                new ArrayList<>(Arrays.asList(oignon, laitue, tomate, fromage)));
+        List<DishIngredient> dishIngredients = new ArrayList<>();
+
+        DishIngredient di1 = new DishIngredient();
+        di1.setIngredient(oignon);
+        di1.setQuantity(0.2);
+        di1.setUnit(UnitType.KG);
+        dishIngredients.add(di1);
+
+        DishIngredient di2 = new DishIngredient();
+        di2.setIngredient(laitue);
+        di2.setQuantity(1.0);
+        di2.setUnit(UnitType.KG);
+        dishIngredients.add(di2);
+
+        DishIngredient di3 = new DishIngredient();
+        di3.setIngredient(tomate);
+        di3.setQuantity(0.3);
+        di3.setUnit(UnitType.KG);
+        dishIngredients.add(di3);
+
+        DishIngredient di4 = new DishIngredient();
+        di4.setIngredient(fromage);
+        di4.setQuantity(0.15);
+        di4.setUnit(UnitType.KG);
+        dishIngredients.add(di4);
+
+        Dish updatedDish = new Dish();
+        updatedDish.setId(1);
+        updatedDish.setName("Salade fraîche");
+        updatedDish.setDishType(DishTypeEnum.START);
+        updatedDish.setPrice(3000.0);
+        updatedDish.setIngredients(dishIngredients);
 
         Dish savedDish = dataRetriever.saveDish(updatedDish);
 
@@ -336,7 +408,7 @@ public class DataRetrieverTest {
         assertEquals(4, savedDish.getIngredients().size());
 
         List<String> ingredientNames = savedDish.getIngredients().stream()
-                .map(Ingredient::getName)
+                .map(dishIngredient -> dishIngredient.getIngredient().getName())
                 .toList();
         assertTrue(ingredientNames.contains("Oignon"));
         assertTrue(ingredientNames.contains("Laitue"));
@@ -344,7 +416,7 @@ public class DataRetrieverTest {
         assertTrue(ingredientNames.contains("Fromage"));
 
         System.out.println("Test k) PASSED\nDish saved: " + savedDish.getName() +
-                "\nIngredients: " + savedDish.getIngredients().stream().map(Ingredient::getName).toList());
+                "\nIngredients: " + ingredientNames);
     }
 
     @Test
@@ -353,11 +425,20 @@ public class DataRetrieverTest {
     public void testSaveDish_UpdateWithOnlyFromage() {
         Ingredient fromage = dataRetriever.findIngredientByName("Fromage");
 
-        Dish updatedDish = new Dish(
-                1,
-                "Salade de fromage",
-                DishTypeEnum.START,
-                new ArrayList<>(Collections.singletonList(fromage)));
+        List<DishIngredient> dishIngredients = new ArrayList<>();
+
+        DishIngredient di = new DishIngredient();
+        di.setIngredient(fromage);
+        di.setQuantity(0.2);
+        di.setUnit(UnitType.KG);
+        dishIngredients.add(di);
+
+        Dish updatedDish = new Dish();
+        updatedDish.setId(1);
+        updatedDish.setName("Salade de fromage");
+        updatedDish.setDishType(DishTypeEnum.START);
+        updatedDish.setPrice(2000.0);
+        updatedDish.setIngredients(dishIngredients);
 
         Dish savedDish = dataRetriever.saveDish(updatedDish);
 
@@ -367,9 +448,9 @@ public class DataRetrieverTest {
         assertEquals(DishTypeEnum.START, savedDish.getDishType());
         assertNotNull(savedDish.getIngredients());
         assertEquals(1, savedDish.getIngredients().size());
-        assertEquals("Fromage", savedDish.getIngredients().getFirst().getName());
+        assertEquals("Fromage", savedDish.getIngredients().getFirst().getIngredient().getName());
 
         System.out.println("Test k) PASSED\nDish saved: " + savedDish.getName() +
-                "\nIngredients: " + savedDish.getIngredients().stream().map(Ingredient::getName).toList());
+                "\nIngredients: " + savedDish.getIngredients().getFirst().getIngredient().getName());
     }
 }

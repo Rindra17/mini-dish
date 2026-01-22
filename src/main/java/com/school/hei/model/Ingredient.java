@@ -1,7 +1,10 @@
 package com.school.hei.model;
 
 import com.school.hei.type.CategoryEnum;
+import com.school.hei.type.MovementTypeEnum;
+import com.school.hei.type.UnitType;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -78,6 +81,25 @@ public class Ingredient {
 
     public void setCategory(CategoryEnum category) {
         this.category = category;
+    }
+
+    public StockValue getStockValueAt(Instant t) {
+        Double total = 0.0;
+
+        UnitType type = stockMovementList.getFirst().getValue().getUnit();
+        for(StockMovement stockMovement : stockMovementList) {
+            if (stockMovement.getCreationDatetime().isAfter(t)) {
+                Double qty = stockMovement.getValue().getQuantity();
+
+                if (stockMovement.getType() == MovementTypeEnum.IN) {
+                    total += qty;
+                }
+                else {
+                    total -= qty;
+                }
+            }
+        }
+        return new StockValue(total, type);
     }
 
     @Override
