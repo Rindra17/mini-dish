@@ -28,7 +28,8 @@ public class Ingredient {
         this.category = category;
     }
 
-    public Ingredient() {}
+    public Ingredient() {
+    }
 
     public Integer getId() {
         return id;
@@ -84,22 +85,22 @@ public class Ingredient {
     }
 
     public StockValue getStockValueAt(Instant t) {
-        Double total = 0.0;
-
-        UnitType type = stockMovementList.getFirst().getValue().getUnit();
-        for(StockMovement stockMovement : stockMovementList) {
-            if (stockMovement.getCreationDatetime().isAfter(t)) {
-                Double qty = stockMovement.getValue().getQuantity();
-
-                if (stockMovement.getType() == MovementTypeEnum.IN) {
-                    total += qty;
-                }
-                else {
-                    total -= qty;
-                }
+        List<StockMovement> concerned = stockMovementList.stream().
+                filter(stockMovement -> stockMovement.getCreationDatetime()
+                        .isBefore(t) || stockMovement.getCreationDatetime().equals(t))
+                .toList();
+        double quantity = 0.0;
+        UnitType type = UnitType.KG;
+        for (StockMovement sm : concerned) {
+            if (sm.getType() == MovementTypeEnum.IN) {
+                quantity += sm.getValue().getQuantity();
+            } else {
+                quantity -= sm.getValue().getQuantity();
             }
+
+            type = sm.getValue().getUnit();
         }
-        return new StockValue(total, type);
+        return new StockValue(quantity, type);
     }
 
     @Override

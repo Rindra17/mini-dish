@@ -1,12 +1,12 @@
 package com.school.hei.repository;
 
 import com.school.hei.DataBase.DBConnection;
-import com.school.hei.model.Dish;
-import com.school.hei.model.DishIngredient;
-import com.school.hei.model.Ingredient;
+import com.school.hei.model.*;
 import com.school.hei.type.CategoryEnum;
 import com.school.hei.type.DishTypeEnum;
+import com.school.hei.type.MovementTypeEnum;
 import com.school.hei.type.UnitType;
+import com.sun.jdi.Value;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -174,7 +174,7 @@ public class DataRetriever {
                     RETURNING id
                 """;
 
-        try (Connection conn = new DBConnection().getDBConnection()) {
+        try (Connection conn = dbConnection.getDBConnection()) {
             conn.setAutoCommit(false);
             Integer dishId;
             try (PreparedStatement ps = conn.prepareStatement(upsertDishSql)) {
@@ -330,6 +330,100 @@ public class DataRetriever {
         }
     }
 
+    public Ingredient saveIngredient(Ingredient ingredient) {
+        String baseSql = """
+                insert into stockmovement (id, id_ingredient, quantity, type, unit, creation_datetime)
+                values (?, ?, ?, ?::movement_type, ?::unit_type, ?)
+                on conflict (id) do nothing;
+                """;
+        DBConnection dbConnection = new DBConnection();
+        Connection connection = dbConnection.getDBConnection();
+        try(PreparedStatement ps = connection.prepareStatement(baseSql)) {
+            for (StockMovement mvt : ingredient.getStockMovementList()){
+                ps.setInt(1, mvt.getId());
+                ps.setInt(2, ingredient.getId());
+                ps.setDouble(3, mvt.getValue().getQuantity());
+                ps.setString(4, mvt.getType().name());
+                ps.setString(5, mvt.getValue().getUnit().name());
+                ps.setTimestamp(6, Timestamp.from(mvt.getCreationDatetime()));
+
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            return ingredient;
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public Ingredient findIngredientById(Integer id)  {
+        String sql = """
+            SELECT i.id as ing_id, i.name as ing_name, i.price as ing_price,
+                   i.category as ing_category
+            FROM ingredient i
+            WHERE i.id = ?
+        """;
+
+        Connection conn= null;
+        try {
+            conn = dbConnection.getDBConnection();
+            PreparedStatement st = conn.prepareStatement(sql);
+            st.setInt(1, id);
+            ResultSet rs = st.executeQuery();
+
+            if (rs.next()) {
+                Ingredient ingredient = new Ingredient();
+                ingredient.setId(rs.getInt("ing_id"));
+                ingredient.setName(rs.getString("ing_name"));
+                ingredient.setPrice(rs.getDouble("ing_price"));
+                ingredient.setCategory(CategoryEnum.valueOf(rs.getString("ing_category")));
+
+                ingredient.setStockMovementList(findStockMouvementsByIngredientId(id));
+
+                return ingredient;
+            }
+            dbConnection.closeDBConnection(conn);
+            throw new RuntimeException("Ingredient not found " + id);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<StockMovement> findStockMouvementsByIngredientId(Integer id) throws SQLException {
+        String sql = """
+            SELECT id, id_ingredient, quantity, type, unit, creation_datetime
+            FROM stockmovement
+            WHERE id_ingredient = ?
+        """;
+
+        List<StockMovement> stockMovements = new ArrayList<>();
+
+        try (Connection conn = dbConnection.getDBConnection();
+        PreparedStatement st = conn.prepareStatement(sql)) {
+            st.setInt(1, id);
+            ResultSet rs = st.executeQuery();
+
+            while (rs.next()) {
+                StockMovement stockMovement = new StockMovement();
+                stockMovement.setId(rs.getInt("id"));
+
+                StockValue value = new StockValue();
+                value.setQuantity(rs.getDouble("quantity"));
+                value.setUnit(UnitType.valueOf(rs.getString("unit")));
+                stockMovement.setValue(value);
+
+                stockMovement.setType(MovementTypeEnum.valueOf(rs.getString("type")));
+
+                stockMovement.setCreationDatetime(rs.getTimestamp("creation_date").toInstant());
+
+                stockMovements.add(stockMovement);
+            }
+        }
+        return stockMovements;
+    }
+
     private Ingredient resultsetToIngredient(ResultSet ingredientRs) throws SQLException {
         Ingredient ingredient = new Ingredient();
         ingredient.setId(ingredientRs.getInt("ing_id"));
@@ -381,51 +475,51 @@ public class DataRetriever {
         }
     }
 
-        private int getNextSerialValue (Connection con, String tableName, String columnNane) throws SQLException {
-            String sequenceName = getSerialSequenceName(con, tableName, columnNane);
-            if (sequenceName == null) {
-                throw new IllegalArgumentException(
-                        "Any sequence found for " + tableName + "." + columnNane
-                );
-            }
-            updateSeqenceNextValue(con, tableName, columnNane, sequenceName);
-
-            String nextValSql = "select nextval(?)";
-            try (PreparedStatement ps = con.prepareStatement(nextValSql)) {
-                ps.setString(1, sequenceName);
-                try (ResultSet rs = ps.executeQuery()) {
-                    rs.next();
-                    return rs.getInt(1);
-                }
-            }
-        }
-
-        private void updateSeqenceNextValue (Connection con, String tableName, String columnNane, String sequenceName) throws
-        SQLException {
-            String setValSql = String.format(
-                    "select setval('%s', (select coalesce(max(%s), 0) from %s))",
-                    sequenceName, columnNane, tableName
+    private int getNextSerialValue(Connection con, String tableName, String columnNane) throws SQLException {
+        String sequenceName = getSerialSequenceName(con, tableName, columnNane);
+        if (sequenceName == null) {
+            throw new IllegalArgumentException(
+                    "Any sequence found for " + tableName + "." + columnNane
             );
+        }
+        updateSeqenceNextValue(con, tableName, columnNane, sequenceName);
 
-            try (PreparedStatement ps = con.prepareStatement(setValSql)) {
-                ps.executeQuery();
+        String nextValSql = "select nextval(?)";
+        try (PreparedStatement ps = con.prepareStatement(nextValSql)) {
+            ps.setString(1, sequenceName);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
             }
         }
+    }
 
-        private String getSerialSequenceName (Connection con, String tableName, String columnNane) throws SQLException {
-            String sql = "select pg_get_serial_sequence(?, ?)";
+    private void updateSeqenceNextValue(Connection con, String tableName, String columnNane, String sequenceName) throws
+            SQLException {
+        String setValSql = String.format(
+                "select setval('%s', (select coalesce(max(%s), 0) from %s))",
+                sequenceName, columnNane, tableName
+        );
 
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
-                ps.setString(1, tableName);
-                ps.setString(2, columnNane);
+        try (PreparedStatement ps = con.prepareStatement(setValSql)) {
+            ps.executeQuery();
+        }
+    }
 
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getString(1);
-                    }
+    private String getSerialSequenceName(Connection con, String tableName, String columnNane) throws SQLException {
+        String sql = "select pg_get_serial_sequence(?, ?)";
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            ps.setString(2, columnNane);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString(1);
                 }
             }
-            return null;
         }
-
+        return null;
     }
+
+}

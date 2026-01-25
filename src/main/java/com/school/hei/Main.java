@@ -5,32 +5,24 @@ import com.school.hei.model.Ingredient;
 import com.school.hei.repository.DataRetriever;
 import com.school.hei.type.DishTypeEnum;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 
 public class Main {
     public static void main() {
-        DataRetriever dataRetriever = new DataRetriever();
+        DataRetriever dr = new DataRetriever();
 
-        System.out.println("===> Test getDishCost() and getGrossMargin() <===");
-
-        try {
-            Dish saladeFraiche = dataRetriever.findDishById(1);
-            System.out.println("Plat trouvé : " + saladeFraiche.getName());
-            System.out.println("Prix de vente : " + saladeFraiche.getPrice());
-
-            double ingredientsCost = saladeFraiche.getDishCost();
-            System.out.println("Coût des ingrédients : " + ingredientsCost);
-
-            try {
-                double grossMargin = saladeFraiche.getGrossMargin();
-                System.out.println("Marge brute : " + grossMargin);
-                System.out.println("   Calcul : " + saladeFraiche.getPrice() + " - " + ingredientsCost + " = " + grossMargin);
-            } catch (RuntimeException e) {
-                System.out.println("Erreur lors du calcul de la marge : " + e.getMessage());
-            }
-        } catch (Exception e) {
-            System.out.println("Erreur : " + e.getMessage());
-        }
+        Ingredient ing1 = dr.findIngredientById(1);
+        Ingredient ing2 = dr.findIngredientById(2);
+        Ingredient ing3 = dr.findIngredientById(3);
+        Ingredient ing4 = dr.findIngredientById(4);
+        Ingredient ing5 = dr.findIngredientById(5);
+        Instant t = Instant.parse("2024-01-06T12:00:00Z");
+        System.out.println(ing1.getStockValueAt(t));
+        System.out.println(ing2.getStockValueAt(t));
+        System.out.println(ing3.getStockValueAt(t));
+        System.out.println(ing4.getStockValueAt(t));
+        System.out.println(ing5.getStockValueAt(t));
     }
 }
